@@ -1,24 +1,43 @@
+from account_repository import save_account, get_account, update_balance
+
 class bankAccount:
     def __init__(self,owner,balance=0):
         self.owner=owner
         self.balance=balance
         
-    def deposite(self,amount):
+    def deposit(self,amount):
         self.balance += amount
         print(f"Added {amount}. New balance is {self.balance}")
+        try:
+            update_balance(self.owner, self.balance)
+        except Exception:
+            pass
         
     def withdraw(self, amount):
         if amount <=self.balance:
             self.balance -=amount
             print(f"Withdrew {amount}. New balance is {self.balance}")
+            try:
+                update_balance(self.owner, self.balance)
+            except Exception:
+                pass
         else:
             print("Insufficient funds")
             
     def transfer(self, amount, to_account):
         if amount <=self.balance:
             self.balance-=amount
-            to_account.deposite(amount)
+            # call deposit on target account and persist both sides
+            to_account.deposit(amount)
             print(f"Transferred {amount} to {to_account.owner} from {self.owner}. New balance is {self.balance}")
+            try:
+                update_balance(self.owner, self.balance)
+            except Exception:
+                pass
+            try:
+                update_balance(to_account.owner, to_account.balance)
+            except Exception:
+                pass
         else:
             print("transfer failed! {self.owner} has insufficient funds.")
 class SavingsAccount(bankAccount):
@@ -31,6 +50,10 @@ class SavingsAccount(bankAccount):
         interest = self.balance* self.interest_rate
         self.balance +=interest
         print(f"interest added ! New balance for {self.owner}: ${self.balance}")
+        try:
+            update_balance(self.owner, self.balance)
+        except Exception:
+            pass
     
     
     """Create a new Child class called BusinessAccount.
@@ -65,32 +88,23 @@ class SmartAccount(bankAccount):
     def get_balance(self):
         return f"the current balance is ${self.balance}"
     
-print("-----basic  account-----")
-acc1= bankAccount("john",6000) 
-acc2= bankAccount("meri",5000)
+ 
+ 
+ 
+acc1 = bankAccount("John", 1000)
+acc1.deposit(2000)
 
-acc1.deposite(500)
-acc1.withdraw(200)
+acc2 = SavingsAccount("Jane", 1500, 0.03)
+acc2.add_interest()
 
-acc1.transfer(500,acc2)
-print(acc1.balance)
-print(acc2.balance)
-
-print("-----savings account-----")
-savings_acc= SavingsAccount("Alice",10000,0.05)
-
-# Using inherited methods
-savings_acc.deposite(2000)
-# Using unique child methods
-savings_acc.add_interest()
-    
-print("-----business account-----")
-business_acc= BusinessAccount("Bob's Burgers",15000)
-business_acc.withdraw(1000)  # Should deduct $1002 including the fee
-business_acc.withdraw(14999)  # Should print insufficient funds message
-print("-----smart account-----")
-my_acc=SmartAccount("Alice", 3000)  
-print(my_acc.get_balance())  # Output: the current balance is $3000
-my_acc.__balance =5000000
-print(my_acc.get_balance())  # Output: the current balance is $3000
-            
+# persist initial accounts: insert if not exists, otherwise update
+for acc in (acc1, acc2):
+    try:
+        existing = get_account(acc.owner)
+        if existing is None:
+            save_account(acc.owner, acc.balance)
+        else:
+            update_balance(acc.owner, acc.balance)
+    except Exception:
+        # if DB not configured, ignore and continue
+        pass
