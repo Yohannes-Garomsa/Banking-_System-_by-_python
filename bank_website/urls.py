@@ -16,10 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from accounts.views import account_list
+from accounts.views import account_list, delete_account  # Import delete_account
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', account_list, name='account_list'),  # Home page showing account list
-    
+    path('delete_account/<int:pk>/', delete_account, name='delete_account'),
 ]

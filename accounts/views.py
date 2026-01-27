@@ -2,6 +2,7 @@ from django.shortcuts import render,redirect # Add redirect
 from .models import Account
 from .forms import AccountForm  # Import your new form
 from django.db.models import Sum 
+from django.shortcuts import get_object_or_404 #
 
 
 def account_list(request):
@@ -31,3 +32,7 @@ def account_list(request):
         'query': query ,
         'form':form #Send the form to the template
         })  
+def delete_account(request, pk):
+    account = get_object_or_404(Account, pk=pk)
+    account.delete()
+    return redirect('account_list')
