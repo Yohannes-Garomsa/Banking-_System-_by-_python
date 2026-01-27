@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bank Website</title>
+</head>
+<body>
+    <h1>Current Bank Accounts</h1>
+    <table border="1">
+        <tr>
+            <th>Owner</th>
+            <th>Balance</th>
+        </tr>
+        {% for acc in accounts %}
+        <tr>
+            <td>{{ acc.owner }}</td>
+            <td>${{ acc.balance }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
