@@ -1,11 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Sum
 from django.db import transaction  # Crucial for professional banking
-from .models import Account
+from .models import Account, Transaction
 from .forms import AccountForm, TransferForm
 
 def account_list(request):
-    # 1. Handle "Add New Account" (Existing logic)
+    # 1. Handle "Add New Account"
     form = AccountForm()
     if request.method == 'POST' and 'add_account' in request.POST:
         form = AccountForm(request.POST)
@@ -13,7 +13,7 @@ def account_list(request):
             form.save()
             return redirect('account_list')
 
-    # 2. Handle "Transfer Money" (New Professional Logic)
+    # 2. Handle "Transfer Money"
     transfer_form = TransferForm()
     if request.method == 'POST' and 'make_transfer' in request.POST:
         transfer_form = TransferForm(request.POST)
@@ -25,12 +25,19 @@ def account_list(request):
             if sender.id == receiver.id:
                 transfer_form.add_error('receiver', "Cannot transfer to the same account!")
             elif sender.balance >= amount:
-                # 'with transaction.atomic()' ensures either BOTH accounts update or NEITHER do.
                 with transaction.atomic():
+                    # Perform the math
                     sender.balance -= amount
                     receiver.balance += amount
                     sender.save()
                     receiver.save()
+                    
+                    # Record this in the Transaction History table
+                    Transaction.objects.create(
+                        sender=sender.owner,
+                        receiver=receiver.owner,
+                        amount=amount
+                    )
                 return redirect('account_list')
             else:
                 transfer_form.add_error('amount', "Insufficient funds!")
@@ -39,6 +46,9 @@ def account_list(request):
     query = request.GET.get('search')
     all_accounts = Account.objects.filter(owner__icontains=query) if query else Account.objects.all()
     total = all_accounts.aggregate(Sum('balance'))['balance__sum'] or 0
+    
+    # Get transaction history
+    history = Transaction.objects.all().order_by('-timestamp')
 
     return render(request, 'index.html', {
         'accounts': all_accounts,
@@ -46,9 +56,9 @@ def account_list(request):
         'query': query,
         'form': form,
         'transfer_form': transfer_form,
+        'history': history,
     })
 
-# Add the Delete view below it
 def delete_account(request, pk):
     account = get_object_or_404(Account, pk=pk)
     account.delete()
