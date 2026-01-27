@@ -20,6 +20,6 @@ from accounts.views import account_list
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', account_list),
+    path('', account_list, name='account_list'),  # Home page showing account list
     
 ]
