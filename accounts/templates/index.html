@@ -1,21 +1,61 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Bank Website</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geda Bank</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-    <h1>Current Bank Accounts</h1>
-    <table border="1">
-        <tr>
-            <th>Owner</th>
-            <th>Balance</th>
-        </tr>
-        {% for acc in accounts %}
-        <tr>
-            <td>{{ acc.owner }}</td>
-            <td>${{ acc.balance }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+<body class="bg-light">
+
+    <nav class="navbar navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">🏦 Geda Bank</a>
+            <span class="navbar-text text-white">Logged in as: <strong>BOSS</strong></span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Customer Account Overview</h4>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-hover mt-3">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Account Owner</th>
+                                    <th class="text-end">Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for acc in accounts %}
+                                <tr>
+                                    <td>{{ acc.owner }}</td>
+                                    <td class="text-end fw-bold text-success">${{ acc.balance }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-center">No accounts found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-secondary">
+                                <tr>
+                                    <th>Total Bank Assets</th>
+                                    <th class="text-end text-primary font-monospace">${{ total_assets }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
