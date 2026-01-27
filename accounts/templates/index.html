@@ -11,8 +11,13 @@
 
     <nav class="navbar navbar-dark bg-dark mb-4">
         <div class="container">
-            <a class="navbar-brand" href="#">🏦 Geda Bank</a>
-            <span class="navbar-text text-white">Logged in as: <strong>BOSS</strong></span>
+            <a class="navbar-brand" href="/">🏦 Geda Bank</a>
+           
+            <form action="" class="d-flex" method="GET">
+                <input type="search" class="form-control me-2" name="search" placeholder="Search owner..."
+                    value="{{query|default:''}}">
+                <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
         </div>
     </nav>
 
