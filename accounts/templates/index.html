@@ -29,24 +29,64 @@
                         <h4 class="mb-0">Customer Account Overview</h4>
                     </div>
                     
-                    <div class="card shadow mb-4">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0">Open New Account</h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="POST" class="row g-3">
-                                {% csrf_token %} <div class="col-md-5">
-                                    {{ form.owner }}
+                   <div class="container">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card shadow-sm h-100 border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0">✨ Open New Account</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form method="POST">
+                                            {% csrf_token %}
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Customer Name</label>
+                                                {{ form.owner }}
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Initial Deposit</label>
+                                                {{ form.balance }}
+                                            </div>
+                                            <button type="submit" name="add_account" class="btn btn-success w-100 mt-2">Create Account</button>
+                                        </form>
+                                    </div>
                                 </div>
-                                <div class="col-md-5">
-                                    {{ form.balance }}
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="submit" class="btn btn-success w-100">Add Account</button>
-                                </div>
-                            </form>
-                        </div>
+                            </div>
 
+                            <div class="col-md-6">
+                                <div class="card shadow-sm h-100 border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0">💸 Transfer Funds</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <form method="POST">
+                                            {% csrf_token %}
+                                            <div class="row">
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label fw-bold">From</label>
+                                                    {{ transfer_form.sender }}
+                                                </div>
+                                                <div class="col-md-6 mb-3">
+                                                    <label class="form-label fw-bold">To</label>
+                                                    {{ transfer_form.receiver }}
+                                                </div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Amount ($)</label>
+                                                {{ transfer_form.amount }}
+                                            </div>
+                                            {% if transfer_form.errors %}
+                                                <div class="alert alert-danger p-2 small">
+                                                    {{ transfer_form.non_field_errors }}
+                                                    {{ transfer_form.amount.errors }}
+                                                </div>
+                                            {% endif %}
+                                            <button type="submit" name="make_transfer" class="btn btn-primary w-100 mt-2">Send Money</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card-body">
