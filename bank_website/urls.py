@@ -16,17 +16,21 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from accounts import views
 from accounts.views import (
     account_list, 
     delete_account ,
     customer_dashboard ,
     signup_view,
     transaction_receipt,
+    transfer_money,
     deposit_money,
-    withdraw_money)
+    withdraw_money
+    )
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('boss/',views.account_list,name='boss_portal'),
     path('accounts/', include('django.contrib.auth.urls')),# NEW: Built-in login/logout
     
     path('signup/', signup_view, name='signup'),  # NEW: User registration
@@ -35,6 +39,7 @@ urlpatterns = [
     path('receipt/<uuid:ref_id>/',transaction_receipt,name='transaction_receipt'),
     path('delete_account/<int:pk>/', delete_account, name='delete_account'),
     path('deposit/', deposit_money, name='deposit_money'),
-path('withdraw/', withdraw_money, name='withdraw_money'),
+    path('withdraw/', withdraw_money, name='withdraw_money'),
+    path('transfer_money/' ,transfer_money, name='transfer_money'),
     
 ]

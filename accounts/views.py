@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required,user_passes_test
 from django.db.models import Sum, Q  # 'Q' is imported here
 from django.db import transaction 
 from django.views.decorators.cache import never_cache
@@ -10,9 +10,22 @@ from .forms import AccountForm, TransferForm
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from decimal import Decimal
+from django.contrib.auth.models import User
 
 
+def is_admin(user):
+    return user.is_staff # Only staff/admins return True
 
+    
+@login_required
+def login_success(request):
+    if request.user.is_staff:
+        return redirect('boss_portal')
+    else:
+        return redirect('customer_dashboard')
+
+
+@user_passes_test(is_admin) # This locks the door for regular customers
 @login_required
 @never_cache
 def account_list(request):
@@ -68,6 +81,7 @@ def account_list(request):
         'transfer_form': transfer_form,
         'history': history,
     })
+    
 
 @login_required
 def customer_dashboard(request):
@@ -122,7 +136,7 @@ def deposit_money(request):
         amount_str=request.POST.get('amount')
         if amount_str:
             amount= Decimal(amount_str)
-            Account=Account.objects.get(user=request.user)
+            account=Account.objects.get(user=request.user)
             with transaction.atomic():
                 #1Update balance
                 account.balance +=amount
@@ -145,7 +159,7 @@ def withdraw_money(request):
             amount=Decimal(amount_str)
             account =Account.objects.get(user=request.user)
             if account.balance >=amount:
-                with transaction.Atomic():
+                with transaction.atomic():
                     account.balance -=amount
                     account.save()
                     
@@ -155,12 +169,54 @@ def withdraw_money(request):
                         amount=amount,
                         tx_type='WDL' #WDL for Withdrawal
                     )
-                messages.success(request, f"withdraw ${amount}")
+                messages.success(request, f"Successfully withdraw ${amount}")
                 return redirect('transaction_receipt',ref_id=new_tx.ref_id)
             else:
                 messages.error(request, "insufficient funds!")
     return redirect('customer_dashboard')
-            
+
+@login_required
+def transfer_money(request):
+    if request.method =='POST':
+        target_username=request.POST.get('target_user')
+        amount_str=request.POST.get('amount')
+        if target_username and amount_str:
+            amount=Decimal(amount_str)
+            sender_account=Account.objects.get(user=request.user)
+            #1 check if target user exist
+            try:
+                receiver_user=User.objects.get(username=target_username)
+                receiver_account=Account.objects.get(user=receiver_user)
+            except(User.DoesNotExist,Account.DoesNotExist):
+                messages.error(request, f"User '{target_username}' not found")
+                return redirect('customer_dashboard')
+            #2 Prevent sending money to your self
+            if sender_account == receiver_account:
+                messages.error(request, "You cannot send money to you self")
+                redirect('customer_dashboard')
+            #3 check for sufficient funds
+            if sender_account.balance >=amount:
+                with transaction.atomic():
+                    #deduct from sender
+                    sender_account.balance -= amount
+                    sender_account.save()
+                    
+                    #add to receiver 
+                    receiver_account.balance +=amount
+                    receiver_account.save()
+                    
+                    #create the official record
+                    new_tx =Transaction.objects.create(
+                        sender=sender_account.owner,
+                        receiver=receiver_account.owner,
+                        amount=amount,
+                        tx_type='TRF' #TRF for transfer
+                    )
+                messages.success(request, f"successfully sent ${amount} to {target_username}!")
+                return redirect('transaction_receipt',ref_id=new_tx.ref_id)
+            else:
+                messages.error(request, "Insufficient funds for this transfer.")
+    return redirect('customer_dashboard')
 
 def delete_account(request, pk):
     account = get_object_or_404(Account, pk=pk)
