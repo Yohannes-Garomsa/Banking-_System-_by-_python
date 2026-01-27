@@ -16,11 +16,25 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from accounts.views import account_list, delete_account ,customer_dashboard 
+from accounts.views import (
+    account_list, 
+    delete_account ,
+    customer_dashboard ,
+    signup_view,
+    transaction_receipt,
+    deposit_money,
+    withdraw_money)
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('django.contrib.auth.urls')),# NEW: Built-in login/logout
+    
+    path('signup/', signup_view, name='signup'),  # NEW: User registration
     path('', account_list, name='account_list'),  # Home page showing account list
     path('dashboard/', customer_dashboard, name='customer_dashboard'),  # Customer dashboard
+    path('receipt/<uuid:ref_id>/',transaction_receipt,name='transaction_receipt'),
     path('delete_account/<int:pk>/', delete_account, name='delete_account'),
+    path('deposit/', deposit_money, name='deposit_money'),
+path('withdraw/', withdraw_money, name='withdraw_money'),
+    
 ]

@@ -46,8 +46,21 @@
                 <div class="balance-amount">${{ account.balance }}</div>
                 <hr class="opacity-25">
                 <div class="d-flex gap-3">
-                    <button class="btn btn-info text-white btn-action">💸 Send Money</button>
-                    <button class="btn btn-outline-info btn-action">➕ Top Up</button>
+                    <form action="{% url 'deposit_money' %}" method="POST" class="d-inline">
+                    {% csrf_token %}
+                    <div class="input-group input-group-sm mb-2" style="width: 150px;">
+                        <input type="number" name="amount" class="form-control" placeholder="Amount" required>
+                        <button class="btn btn-info" type="submit">➕ Top Up</button>
+                    </div>
+                </form>
+
+                <form action="{% url 'withdraw_money' %}" method="POST" class="d-inline">
+                    {% csrf_token %}
+                    <div class="input-group input-group-sm mb-2" style="width: 150px;">
+                        <input type="number" name="amount" class="form-control" placeholder="Amount" required>
+                        <button class="btn btn-danger" type="submit">💸 Withdraw</button>
+                    </div>
+                </form>
                 </div>
             </div>
         </div>
@@ -77,20 +90,38 @@
                                 <th class="border-0 text-end">Amount</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for tx in my_history %}
-                            <tr>
-                                <td class="py-3 border-0">
-                                    <span class="text-info">Transfer to</span> {{ tx.receiver }}
-                                    <br><small class="opacity-50">{{ tx.timestamp }}</small>
-                                </td>
-                                <td class="text-end py-3 border-0 fw-bold text-danger">-${{ tx.amount }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="2" class="text-center opacity-50">No activity yet.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <tbody>
+                {% for tx in my_history %}
+                <tr onclick="window.location='{% url 'transaction_receipt' tx.ref_id %}'"
+                    style="cursor: pointer;" 
+                    class="align-middle">
+                    <td class="py-3 border-0">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3 p-2 rounded-circle {% if tx.tx_type == 'DEP' %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %}">
+                                {% if tx.tx_type == 'DEP' %}📥{% else %}📤{% endif %}
+                            </div>
+                            <div>
+                                <span class="text-info fw-bold">{{ tx.get_tx_type_display }}</span> 
+                                to/from <span class="text-white">{{ tx.receiver }}</span>
+                                <br><small class="opacity-50">{{ tx.timestamp|date:"D, d M Y" }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="text-end py-3 border-0 fw-bold {% if tx.tx_type == 'DEP' %}text-success{% else %}text-danger{% endif %}">
+                        {% if tx.tx_type == 'DEP' %}+{% else %}-{% endif %}${{ tx.amount }}
+                        <i class="bi bi-chevron-right ms-2 small opacity-50"></i>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2" class="text-center py-5 opacity-50">
+                        <i class="bi bi-clock-history d-block fs-2 mb-2"></i>
+                        No activity yet. Your transactions will appear here.
+                    </td>
+                </tr>
+                {% endfor %}
+        </tbody>
+        </table>
                 </div>
             </div>
         </div>

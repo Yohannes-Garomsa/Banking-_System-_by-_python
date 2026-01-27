@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geda Bank | Digital Receipt</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .receipt-box {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            border: 2px solid #eee;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            background: #fff;
+        }
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="receipt-box">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">🏦 GEDA BANK</h2>
+        <p class="text-muted small">Official Transaction Receipt</p>
+    </div>
+
+    <div class="d-flex justify-content-between mb-2">
+        <span class="text-muted">Reference ID:</span>
+        <span class="fw-bold text-uppercase">{{ tx.ref_id|stringformat:".8s" }}...</span>
+    </div>
+    <div class="d-flex justify-content-between mb-2">
+        <span class="text-muted">Date:</span>
+        <span>{{ tx.timestamp|date:"M d, Y H:i" }}</span>
+    </div>
+    
+    <hr>
+    
+    <div class="text-center my-4">
+        <h1 class="display-5 fw-bold">${{ tx.amount }}</h1>
+        <span class="badge bg-success">{{ tx.get_tx_type_display }}</span>
+    </div>
+
+    <div class="p-3 bg-light rounded">
+        <div class="mb-2"><strong>From:</strong> {{ tx.sender }}</div>
+        <div><strong>To:</strong> {{ tx.receiver }}</div>
+    </div>
+
+    <div class="mt-5 d-grid gap-2 no-print">
+        <button onclick="window.print()" class="btn btn-dark">🖨️ Print Receipt</button>
+        <a href="{% url 'customer_dashboard' %}" class="btn btn-outline-secondary">Return to Dashboard</a>
+    </div>
+</div>
+
+</body>
+</html>
