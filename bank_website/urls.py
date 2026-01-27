@@ -15,11 +15,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
-from accounts.views import account_list, delete_account  # Import delete_account
-
+from django.urls import path, include
+from accounts.views import account_list, delete_account ,customer_dashboard 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),# NEW: Built-in login/logout
     path('', account_list, name='account_list'),  # Home page showing account list
+    path('dashboard/', customer_dashboard, name='customer_dashboard'),  # Customer dashboard
     path('delete_account/<int:pk>/', delete_account, name='delete_account'),
 ]

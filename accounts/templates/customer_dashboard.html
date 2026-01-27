@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Geda Bank | My Vault</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #0f0c29; 
+            background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        /* Glassmorphism Effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            transition: transform 0.3s ease;
+        }
+        .glass-card:hover { transform: translateY(-5px); }
+        .balance-amount { font-size: 3.5rem; font-weight: 800; color: #00d2ff; }
+        .btn-action { border-radius: 50px; padding: 12px 30px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h5 class="text-uppercase text-info tracking-widest">Welcome Back</h5>
+            <h1 class="fw-bold">{{ account.owner }} <span class="badge bg-success fs-6">Verified</span></h1>
+        </div>
+        <form action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button class="btn btn-outline-light btn-action">Exit Vault</button>
+        </form>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="glass-card shadow-lg">
+                <p class="text-uppercase small opacity-75">Available Balance</p>
+                <div class="balance-amount">${{ account.balance }}</div>
+                <hr class="opacity-25">
+                <div class="d-flex gap-3">
+                    <button class="btn btn-info text-white btn-action">💸 Send Money</button>
+                    <button class="btn btn-outline-info btn-action">➕ Top Up</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="glass-card h-100">
+                <h5 class="mb-4">Security Center</h5>
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-success rounded-circle p-2 me-3">🛡️</div>
+                    <div><small class="d-block opacity-50">Status</small><strong>Fully Protected</strong></div>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="bg-warning rounded-circle p-2 me-3">🔑</div>
+                    <div><small class="d-block opacity-50">Last Login</small><strong>Today</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 mt-4">
+            <div class="glass-card">
+                <h5 class="mb-4">Recent Activity</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th class="border-0">Description</th>
+                                <th class="border-0 text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in my_history %}
+                            <tr>
+                                <td class="py-3 border-0">
+                                    <span class="text-info">Transfer to</span> {{ tx.receiver }}
+                                    <br><small class="opacity-50">{{ tx.timestamp }}</small>
+                                </td>
+                                <td class="text-end py-3 border-0 fw-bold text-danger">-${{ tx.amount }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-center opacity-50">No activity yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,11 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Sum
-from django.db import transaction  # Crucial for professional banking
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Q  # 'Q' is imported here
+from django.db import transaction 
+from django.views.decorators.cache import never_cache
 from .models import Account, Transaction
 from .forms import AccountForm, TransferForm
 
+@login_required
+@never_cache
 def account_list(request):
-    # 1. Handle "Add New Account"
+    if not request.user.is_staff:
+        return redirect('customer_dashboard')
+   # 1. Handle "Add New Account"
     form = AccountForm()
     if request.method == 'POST' and 'add_account' in request.POST:
         form = AccountForm(request.POST)
@@ -26,13 +32,11 @@ def account_list(request):
                 transfer_form.add_error('receiver', "Cannot transfer to the same account!")
             elif sender.balance >= amount:
                 with transaction.atomic():
-                    # Perform the math
                     sender.balance -= amount
                     receiver.balance += amount
                     sender.save()
                     receiver.save()
                     
-                    # Record this in the Transaction History table
                     Transaction.objects.create(
                         sender=sender.owner,
                         receiver=receiver.owner,
@@ -47,7 +51,6 @@ def account_list(request):
     all_accounts = Account.objects.filter(owner__icontains=query) if query else Account.objects.all()
     total = all_accounts.aggregate(Sum('balance'))['balance__sum'] or 0
     
-    # Get transaction history
     history = Transaction.objects.all().order_by('-timestamp')
 
     return render(request, 'index.html', {
@@ -57,6 +60,25 @@ def account_list(request):
         'form': form,
         'transfer_form': transfer_form,
         'history': history,
+    })
+
+@login_required
+def customer_dashboard(request):
+    try:
+        # Get account linked to logged-in user
+        account = Account.objects.get(user=request.user)
+        
+        # We use Q directly here since it was imported from django.db.models
+        my_history = Transaction.objects.filter(
+            Q(sender=account.owner) | Q(receiver=account.owner)
+        ).order_by('-timestamp')
+        
+    except Account.DoesNotExist:
+        return redirect('account_list')
+
+    return render(request, 'customer_dashboard.html', {
+        'account': account,
+        'my_history': my_history
     })
 
 def delete_account(request, pk):
