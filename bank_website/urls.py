@@ -28,6 +28,9 @@ from accounts.views import (
     withdraw_money
     )
 
+from django.conf import settings
+from django.conf.urls.static import static
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('boss/',views.account_list,name='boss_portal'),
@@ -41,5 +44,11 @@ urlpatterns = [
     path('deposit/', deposit_money, name='deposit_money'),
     path('withdraw/', withdraw_money, name='withdraw_money'),
     path('transfer_money/' ,transfer_money, name='transfer_money'),
+    path('verify/', views.identity_verification, name='verify_identity'),
+    path('approve/<int:account_id>/', views.approve_account, name='approve_account'),
     
 ]
+
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

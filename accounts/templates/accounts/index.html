@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2 class="mb-4"><i class="bi bi-shield-lock"></i> Geda Bank - Administrative Portal</h2>
+
+    <div class="card border-warning mb-5">
+        <div class="card-header bg-warning text-dark fw-bold">
+            Pending Identity Verifications ({{ pending_count }})
+        </div>
+        <div class="card-body bg-light">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>ID Document</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for account in accounts %}
+                        {% if not account.is_verified and account.id_card_photo %}
+                        <tr>
+                            <td><strong>{{ account.user.username }}</strong></td>
+                            <td>{{ account.phone_number }}</td>
+                            <td>
+                                <a href="{{ account.id_card_photo.url }}" target="_blank">
+                                    <img src="{{ account.id_card_photo.url }}" class="rounded shadow-sm" style="width: 80px; height: 50px; object-fit: cover;">
+                                </a>
+                            </td>
+                            <td>
+                                <form action="{% url 'approve_account' account.id %}" method="POST">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success btn-sm">Verify & Activate</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% empty %}
+                        <tr><td colspan="4" class="text-center">No pending verifications.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

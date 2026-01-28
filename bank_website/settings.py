@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -128,3 +129,6 @@ LOGIN_REDIRECT_URL = 'account_list'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_REDIRECT_URL='customer_dashboard'
 LOGOUT_REDIRECT_URL = 'login'  # Or whatever the name of your login URL is
+
+MEDIA_URL = '/media/'  # Must have the leading and trailing slash
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

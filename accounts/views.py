@@ -12,6 +12,10 @@ from django.contrib import messages
 from decimal import Decimal
 from django.contrib.auth.models import User
 
+import base64
+from django.core.files.base import ContentFile
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
 
 def is_admin(user):
     return user.is_staff # Only staff/admins return True
@@ -28,7 +32,18 @@ def login_success(request):
 @user_passes_test(is_admin) # This locks the door for regular customers
 @login_required
 @never_cache
+@user_passes_test(lambda u:u.is_staff)
 def account_list(request):
+    #get all accounts
+    accounts=Account.objects.all()
+    
+    # Specifically count how many are waiting for verification
+    pending_count=Account.objects.filter(is_verified=False).count()
+    return render(request,'accounts/index.html',{
+        'accounts':accounts,
+        'pending_count':pending_count
+    })
+    
     if not request.user.is_staff:
         return redirect('customer_dashboard')
    # 1. Handle "Add New Account"
@@ -85,6 +100,30 @@ def account_list(request):
 
 @login_required
 def customer_dashboard(request):
+    
+    try:
+        account = request.user.account
+    except Account.DoesNotExist:
+        # If it's an admin, send them to the boss portal
+        if request.user.is_staff:
+            return redirect('boss_portal')
+        # For others, maybe tell them to contact the bank
+        messages.error(request, "You do not have a bank account profile.")
+        return redirect('login')
+    
+    account=request.user.account
+    # If the user hasn't uploaded their ID yet, send them to verify
+    if not account.id_card_photo:
+        return redirect('verify_identity')
+    
+    # If they uploaded it but the Boss hasn't clicked "Approve"
+    if not account.is_verified:
+        return render(request,'accounts/success_pending.html')
+    
+    #...otherwise, show the real dashboard ...
+    return render(request,'accounts/dashboard.html')
+    
+    
     try:
         # Get account linked to logged-in user
         account = Account.objects.get(user=request.user)
@@ -177,6 +216,10 @@ def withdraw_money(request):
 
 @login_required
 def transfer_money(request):
+    #check if the user is verified
+    if not request.user.account.is_verified:
+        return render(request, 'accounts/success_pending.html')
+    
     if request.method =='POST':
         target_username=request.POST.get('target_user')
         amount_str=request.POST.get('amount')
@@ -222,3 +265,38 @@ def delete_account(request, pk):
     account = get_object_or_404(Account, pk=pk)
     account.delete()
     return redirect('account_list')
+
+@login_required
+def identity_verification(request):
+    if request.method =='POST':
+        id_data=request.POST.get('id_image')
+        # Inside the POST check
+        phone = request.POST.get('phone_number') # Make sure your HTML has an input with this name
+        if phone:
+           account.phone_number = phone
+        
+        if id_data:
+            #convert the base64 image from the webcam to file
+            format, imgstr =id_data.split(';base64,')
+            ext =format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name=f"id_{request.user.id}.{ext}")
+            
+            
+            #save to the user's account
+            account =request.user.account
+            account.id_card_photo=data
+            account.save()
+            
+            return redirect('customer_dashboard') # Or a success page
+        
+    return render(request,'accounts/verify_identity.html')
+
+@user_passes_test(lambda u: u.is_staff)
+def approve_account(request, account_id):
+    if request.method == "POST":
+        account = Account.objects.get(id=account_id)
+        account.is_verified = True
+        account.save()
+        messages.success(request, f"Account for {account.user.username} has been activated!")
+    return redirect('boss_portal')
+            

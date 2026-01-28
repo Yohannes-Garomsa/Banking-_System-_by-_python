@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container text-center mt-5">
+    <div class="card bg-dark text-white p-5 border-warning">
+        <h1 class="display-1">⏳</h1>
+        <h2 class="text-warning">Verification in Progress</h2>
+        <p class="lead">Thank you for submitting your ID to Geda Bank.</p>
+        <p>Our administrators are currently reviewing your documents. You will have full access to transfers and deposits once approved.</p>
+        <a href="{% url 'customer_dashboard' %}" class="btn btn-outline-light">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
