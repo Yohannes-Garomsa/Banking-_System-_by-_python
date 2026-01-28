@@ -21,6 +21,15 @@ class Account(models.Model):
     
     def __str__(self):
         return f"{self.user.username}-{' ✅ verified' if self.is_verified else  '⏳ pending'}"
+    
+    OCCUPATION_CHOICES = [
+        ('student', 'Student'),
+        ('employee', 'Employee'),
+        ('business', 'Business/Self-Employed'),
+        ('other', 'Other'),
+    ]
+    occupation = models.CharField(max_length=20, choices=OCCUPATION_CHOICES, null=True, blank=True)
+    kyc_step = models.IntegerField(default=1) # Track which step the user is on
 class Transaction(models.Model):
       
       TRANSACTION_TYPES=(

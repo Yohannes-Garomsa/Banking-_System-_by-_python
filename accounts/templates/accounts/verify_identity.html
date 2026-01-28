@@ -1,46 +1,114 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container mt-5">
-    <div class="scanner-box p-4 bg-dark text-white text-center">
-        <div class="scanner-line"></div>
-        <h2 class="text-success fw-bold">ID SCANNER</h2>
-        <p>Align your National ID within the frame</p>
-        
-        <video id="video" width="100%" autoplay class="rounded border border-success"></video>
-        <canvas id="canvas" style="display:none;"></canvas>
-        
-        <div class="mt-3">
-            <button id="snap" class="btn btn-success btn-lg px-5">CAPTURE ID</button>
+    <div class="row mb-5 text-center position-relative">
+        <div class="col-4">
+            <div class="rounded-circle d-inline-block px-3 py-2 {% if account.kyc_step == 1 %}bg-success{% else %}bg-secondary{% endif %} text-white fw-bold">1</div>
+            <p class="small mt-2 fw-bold text-white">Profile Details</p>
         </div>
-        
-        <form id="verify-form" method="POST" class="mt-3">
-            {% csrf_token %}
-            <input type="hidden" name="id_image" id="id_image">
-            <button type="submit" id="submit-btn" class="btn btn-warning d-none">UPLOAD TO BANK VAULT</button>
-        </form>
+        <div class="col-4 border-start border-end border-secondary">
+            <div class="rounded-circle d-inline-block px-3 py-2 {% if account.kyc_step == 2 %}bg-success{% else %}bg-secondary{% endif %} text-white fw-bold">2</div>
+            <p class="small mt-2 text-white">Biometrics</p>
+        </div>
+        <div class="col-4">
+            <div class="rounded-circle d-inline-block px-3 py-2 {% if account.kyc_step == 3 %}bg-success{% else %}bg-secondary{% endif %} text-white fw-bold">3</div>
+            <p class="small mt-2 text-white">Verification</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            
+            {% if account.kyc_step == 1 %}
+            <div class="card bg-dark text-white border-success shadow-lg p-4">
+                <h3 class="text-success mb-4"><i class="bi bi-person-lines-fill"></i> Step 1: Basic Info</h3>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="text" name="phone_number" class="form-control bg-secondary text-white border-0" placeholder="+251..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Occupation</label>
+                        <select name="occupation" class="form-select bg-secondary text-white border-0">
+                            <option value="student">Student</option>
+                            <option value="employee">Employee</option>
+                            <option value="business">Business / Entrepreneur</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 py-3 fw-bold">CONTINUE TO BIOMETRICS</button>
+                </form>
+            </div>
+            {% endif %}
+
+            {% if account.kyc_step == 2 %}
+            <div class="scanner-box p-4 bg-dark text-white text-center border border-success rounded shadow-lg">
+                <div class="scanner-line"></div> <h2 class="text-success fw-bold"><i class="bi bi-camera"></i> BIOMETRIC SCANNER</h2>
+                <p class="text-secondary">Position your National ID or Face clearly in the frame</p>
+                
+                <video id="video" width="100%" autoplay class="rounded border border-success mb-3"></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+                
+                <div class="d-grid gap-2">
+                    <button id="snap" class="btn btn-success btn-lg fw-bold">CAPTURE IMAGE</button>
+                    
+                    <form id="verify-form" method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="id_image" id="id_image">
+                        <button type="submit" id="submit-btn" class="btn btn-warning btn-lg w-100 d-none">SUBMIT TO BANK VAULT</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if account.kyc_step == 3 %}
+            <div class="card bg-dark text-white border-warning p-5 text-center">
+                <h1 class="display-1 text-warning">⏳</h1>
+                <h2 class="fw-bold">Review in Progress</h2>
+                <p class="lead">Geda Bank is currently verifying your identity. This usually takes less than 24 hours.</p>
+                <a href="{% url 'customer_dashboard' %}" class="btn btn-outline-light mt-3">Back to Dashboard</a>
+            </div>
+            {% endif %}
+
+        </div>
     </div>
 </div>
 
+<style>
+    /* The scanning laser animation */
+    .scanner-box { position: relative; overflow: hidden; }
+    .scanner-line {
+        position: absolute; width: 100%; height: 3px;
+        background: rgba(0, 255, 136, 0.7);
+        top: 0; left: 0; z-index: 10;
+        animation: scan 3s linear infinite;
+    }
+    @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+</style>
+
 <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const snap = document.getElementById('snap');
-    const idInput = document.getElementById('id_image');
-    const submitBtn = document.getElementById('submit-btn');
+    // Only run script if Step 2 is active
+    if (document.getElementById('video')) {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const snap = document.getElementById('snap');
+        const idInput = document.getElementById('id_image');
+        const submitBtn = document.getElementById('submit-btn');
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => { video.srcObject = stream; });
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => { video.srcObject = stream; });
 
-    snap.addEventListener('click', () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        const dataUrl = canvas.toDataURL('image/png');
-        idInput.value = dataUrl;
-        
-        snap.innerText = "RE-TAKE PHOTO";
-        submitBtn.classList.remove('d-none');
-        alert("ID Captured Successfully!");
-    });
+        snap.addEventListener('click', () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const dataUrl = canvas.toDataURL('image/png');
+            idInput.value = dataUrl;
+            
+            snap.innerText = "RE-TAKE PHOTO";
+            snap.classList.replace('btn-success', 'btn-outline-light');
+            submitBtn.classList.remove('d-none');
+        });
+    }
 </script>
 {% endblock %}
