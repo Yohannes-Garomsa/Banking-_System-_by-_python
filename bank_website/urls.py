@@ -18,14 +18,17 @@ from django.contrib import admin
 from django.urls import path, include
 from accounts import views
 from accounts.views import (
+    login_success, 
     account_list, 
-    delete_account ,
-    customer_dashboard ,
-    signup_view,
-    transaction_receipt,
-    transfer_money,
-    deposit_money,
-    withdraw_money
+    customer_dashboard, 
+    signup_view, 
+    transaction_receipt, 
+    deposit_money,    # <--- Make sure these are here
+    withdraw_money,   # <--- 
+    transfer_money, 
+    identity_verification, 
+    approve_account,
+    delete_account
     )
 
 from django.conf import settings
@@ -40,7 +43,7 @@ urlpatterns = [
     path('', account_list, name='account_list'),  # Home page showing account list
     path('dashboard/', customer_dashboard, name='customer_dashboard'),  # Customer dashboard
     path('receipt/<uuid:ref_id>/',transaction_receipt,name='transaction_receipt'),
-    path('delete_account/<int:pk>/', delete_account, name='delete_account'),
+   # path('delete_account/<int:pk>/', delete_account, name='delete_account'),
     path('deposit/', deposit_money, name='deposit_money'),
     path('withdraw/', withdraw_money, name='withdraw_money'),
     path('transfer_money/' ,transfer_money, name='transfer_money'),

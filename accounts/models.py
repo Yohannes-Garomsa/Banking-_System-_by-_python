@@ -5,22 +5,25 @@ from django.db.models.signals import post_save
 
 from django.dispatch import receiver
 
-# Create your models here.
 class Account(models.Model):
-    # Link to a real User login
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     owner = models.CharField(max_length=100)
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    # Professional Verification Fields
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    occupation = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Image Storage
+    id_card_photo = models.ImageField(upload_to='identity/ids/', blank=True, null=True)
+    selfie_photo = models.ImageField(upload_to='identity/selfies/', blank=True, null=True)
+    
+    # Status Tracking
+    is_verified = models.BooleanField(default=False)
+    kyc_step = models.IntegerField(default=1)
 
     def __str__(self):
-        return f"{self.owner}'s Account"
-    is_verified =models.BooleanField(default=False)
-    id_card_photo=models.ImageField(upload_to='verifications/ids/',null=True, blank=True)
-    live_selfie=models.ImageField(upload_to='veifications/selfies/',null=True, blank=True)
-    phone_number=models.CharField(max_length=15,unique=True,null=True,blank=True)
-    
-    def __str__(self):
-        return f"{self.user.username}-{' ✅ verified' if self.is_verified else  '⏳ pending'}"
+        return f"{self.owner}'s Account - Status: {'Verified' if self.is_verified else 'Pending'}"
     
     OCCUPATION_CHOICES = [
         ('student', 'Student'),

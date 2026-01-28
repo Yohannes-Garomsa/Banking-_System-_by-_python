@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geda Bank | Global Digital Vault</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --geda-red: #D90429;
+            --geda-black: #1a1a1a;
+            --geda-white: #FFFFFF;
+        }
+
+        body { font-family: 'Poppins', sans-serif; background: var(--geda-white); overflow-x: hidden; }
+
+        /* --- Animated Background Section --- */
+        .hero-area {
+            height: 90vh;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
+                        url('https://images.unsplash.com/photo-1550565118-3a14e8d0386f?auto=format&fit=crop&q=80&w=2070');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            align-items: center;
+            color: white;
+            position: relative;
+        }
+
+        /* --- Live Currency Ticker --- */
+        .ticker-wrapper {
+            background: var(--geda-black);
+            color: white;
+            padding: 10px 0;
+            border-bottom: 3px solid var(--geda-red);
+            overflow: hidden;
+        }
+
+        .ticker-move {
+            display: flex;
+            width: 200%;
+            animation: ticker 30s linear infinite;
+        }
+
+        .ticker-item {
+            padding: 0 40px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .ticker-item span { color: #00ff88; margin-left: 5px; }
+
+        @keyframes ticker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* --- Interactive Gallery --- */
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+            height: 300px;
+            cursor: pointer;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.8s ease;
+        }
+
+        .gallery-item:hover img { transform: scale(1.1) rotate(2deg); }
+
+        .gallery-overlay {
+            position: absolute;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(transparent, var(--geda-red));
+            padding: 20px;
+            transition: 0.5s;
+            color: white;
+        }
+
+        .gallery-item:hover .gallery-overlay { bottom: 0; }
+
+        /* --- Utility Classes --- */
+        .btn-geda {
+            background: var(--geda-red);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+            transition: 0.4s;
+        }
+
+        .btn-geda:hover { background: white; color: var(--geda-red); transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+<div class="ticker-wrapper">
+    <div class="ticker-move">
+        <div class="ticker-item">USD/ETB <span>56.40 ▲</span></div>
+        <div class="ticker-item">EUR/USD <span>1.08 ▼</span></div>
+        <div class="ticker-item">GBP/ETB <span>71.20 ▲</span></div>
+        <div class="ticker-item">BTC/USD <span>43,500 ▲</span></div>
+        <div class="ticker-item">USD/ETB <span>56.40 ▲</span></div>
+        <div class="ticker-item">EUR/USD <span>1.08 ▼</span></div>
+        <div class="ticker-item">GBP/ETB <span>71.20 ▲</span></div>
+        <div class="ticker-item">BTC/USD <span>43,500 ▲</span></div>
+    </div>
+</div>
+
+<header class="hero-area text-center text-md-start">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-7">
+                <h1 class="display-2 fw-bolder mb-3">GEDA <span style="color: var(--geda-red);">DIGITAL</span></h1>
+                <p class="fs-4 mb-5 text-light">The first borderless bank of the future. Secure your wealth in a vault that never sleeps.</p>
+                <div class="d-flex gap-3">
+                    <a href="{% url 'signup' %}" class="btn btn-geda btn-lg">START VERIFICATION</a>
+                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg">LOGIN</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<section class="py-5">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Geda <span class="text-danger">Experience</span></h2>
+            <p class="text-muted">Modern Banking, Everywhere.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="gallery-item">
+                    <img src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&q=80&w=800" alt="Card">
+                    <div class="gallery-overlay">
+                        <h5>Premium Cards</h5>
+                        <p>Matte black titanium cards for exclusive members.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="gallery-item">
+                    <img src="https://images.unsplash.com/photo-1621416894569-0f39ed31d247?auto=format&fit=crop&q=80&w=800" alt="App">
+                    <div class="gallery-overlay">
+                        <h5>Mobile Vault</h5>
+                        <p>Control your money with biometric precision.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="gallery-item">
+                    <img src="https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&q=80&w=800" alt="Exchange">
+                    <div class="gallery-overlay">
+                        <h5>Global Reach</h5>
+                        <p>Exchange over 50+ currencies instantly.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-dark text-white py-4 border-top border-danger border-4">
+    <div class="container text-center">
+        <h4 class="fw-bold mb-3">GEDA BANK</h4>
+        <div class="d-flex justify-content-center gap-4 mb-3">
+            <i class="bi bi-shield-lock-fill text-danger fs-3"></i>
+            <i class="bi bi-globe-americas fs-3"></i>
+            <i class="bi bi-cpu-fill text-danger fs-3"></i>
+        </div>
+        <p class="small opacity-50">© 2026 GEDA DIGITAL BANK | SECURE ENCRYPTION ENABLED</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
