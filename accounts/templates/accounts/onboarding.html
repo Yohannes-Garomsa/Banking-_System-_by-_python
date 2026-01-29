@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geda Bank | Secure Onboarding</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --geda-red: #D90429;
+            --geda-black: #0b0d11;
+            --geda-dark-grey: #1c1f26;
+            --geda-white: #ffffff;
+        }
+
+        body {
+            background: radial-gradient(circle at top right, #2b0208, var(--geda-black));
+            color: var(--geda-white);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+
+        /* --- PROGRESS TRACKER --- */
+        .tracker-container {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 50px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .tracker-line-bg {
+            position: absolute;
+            top: 22px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            z-index: 1;
+        }
+
+        .tracker-line-fill {
+            position: absolute;
+            top: 22px;
+            left: 0;
+            width: 0%;
+            height: 4px;
+            background: var(--geda-red);
+            box-shadow: 0 0 15px var(--geda-red);
+            z-index: 2;
+            transition: width 0.8s ease;
+        }
+
+        .step-node {
+            position: relative;
+            z-index: 3;
+            width: 45px;
+            height: 45px;
+            background: var(--geda-dark-grey);
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.4s;
+        }
+
+        .step-node.active {
+            border-color: var(--geda-red);
+            background: var(--geda-red);
+            box-shadow: 0 0 20px var(--geda-red);
+        }
+
+        .step-label {
+            position: absolute;
+            top: 55px;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* --- GLASS CARD --- */
+        .glass-card {
+            background: rgba(28, 31, 38, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 30px;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .step-content { display: none; animation: slideIn 0.5s ease forwards; }
+        .step-content.active { display: block; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        .input-group-geda {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .input-group-geda input, .input-group-geda select {
+            background: transparent; border: none; color: white; padding: 12px; width: 100%; outline: none;
+        }
+
+        .motivation-banner {
+            background: linear-gradient(90deg, rgba(217, 4, 41, 0.2), transparent);
+            border-left: 4px solid var(--geda-red);
+            padding: 15px; margin-bottom: 25px; border-radius: 0 10px 10px 0;
+        }
+
+        /* --- CAMERA & SCANNER --- */
+        #cameraContainer {
+            position: relative;
+            background: #000;
+            min-height: 250px;
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .laser {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: var(--geda-red);
+            box-shadow: 0 0 15px var(--geda-red);
+            z-index: 10;
+            display: none;
+            animation: scanning 2s linear infinite;
+        }
+
+        @keyframes scanning { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+    </style>
+</head>
+<body>
+
+<div class="container d-flex flex-column align-items-center py-5">
+    
+    <div class="tracker-container">
+        <div class="tracker-line-bg"></div>
+        <div id="progressLine" class="tracker-line-fill"></div>
+        <div class="step-node active" id="node1"><i class="bi bi-person"></i><div class="step-label">Identity</div></div>
+        <div class="step-node" id="node2"><i class="bi bi-shield-lock"></i><div class="step-label">Security</div></div>
+        <div class="step-node" id="node3"><i class="bi bi-check2-all"></i><div class="step-label">Approval</div></div>
+    </div>
+
+    <div class="glass-card shadow-lg">
+        <form id="gedaForm">
+            {% csrf_token %}
+            <div id="content1" class="step-content active">
+                <div class="motivation-banner">
+                    <h5 class="text-danger fw-bold">Step 1: The Foundation</h5>
+                    <p class="small m-0">"Precision is the hallmark of wealth. Your details build the wall around your assets."</p>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12"><div class="input-group-geda"><input type="text" placeholder="Full Legal Name" required></div></div>
+                    <div class="col-md-6"><div class="input-group-geda"><input type="text" placeholder="Country" required></div></div>
+                    <div class="col-md-6"><div class="input-group-geda"><input type="text" placeholder="Kebele / District" required></div></div>
+                    <div class="col-md-6"><div class="input-group-geda"><input type="text" placeholder="National ID Number" required></div></div>
+                    <div class="col-md-6">
+                        <div class="input-group-geda">
+                            <select required><option value="" disabled selected>Job Position</option><option>Student</option><option>Employee</option><option>Entrepreneur</option></select>
+                        </div>
+                    </div>
+                    <div class="col-md-6"><div class="input-group-geda"><input type="number" placeholder="Age" required></div></div>
+                    <div class="col-md-6"><div class="input-group-geda"><input type="tel" placeholder="Phone Number" required></div></div>
+                </div>
+                <button type="button" onclick="goToStep(2)" class="btn btn-danger w-100 py-3 mt-3 fw-bold">INITIALIZE SECURITY</button>
+            </div>
+
+            <div id="content2" class="step-content">
+                <div class="motivation-banner">
+                    <h5 class="text-danger fw-bold">Step 2: Biometric Guard</h5>
+                    <p class="small m-0">"A bank is only as strong as its verification. Let's make your vault unhackable."</p>
+                </div>
+                
+                <div id="cameraContainer" class="border border-dashed border-secondary mb-4">
+                    <div id="laserLine" class="laser"></div>
+                    <div id="cameraPlaceholder" class="text-center">
+                        <i class="bi bi-camera-video display-4 text-white-50"></i>
+                        <p class="mt-3 mb-0" id="statusText">Awaiting Optical Identity Scan...</p>
+                    </div>
+                    <video id="webcamVideo" autoplay playsinline style="width: 100%; display: none;"></video>
+                </div>
+
+                <div class="row g-2">
+                    <div class="col-6"><button type="button" onclick="handleCapture('National ID')" class="btn btn-outline-light w-100 py-3 small">Capture ID</button></div>
+                    <div class="col-6"><button type="button" onclick="handleCapture('Face')" class="btn btn-outline-light w-100 py-3 small">Capture Face</button></div>
+                </div>
+                <button type="button" onclick="finalizeSubmission()" class="btn btn-danger w-100 py-3 mt-4 fw-bold">SUBMIT FOR REVIEW</button>
+            </div>
+
+            <div id="content3" class="step-content text-center py-5">
+                <div class="spinner-grow text-danger mb-4" role="status"></div>
+                <h2 class="fw-bold">Geda Review Protocol</h2>
+                <p class="text-white-50">"Our specialists are now validating your digital footprint. Excellence takes time—we will notify you the moment your vault is ready."</p>
+                <div class="mt-5 p-3 rounded bg-black text-danger border border-danger small">
+                    <i class="bi bi-exclamation-triangle-fill"></i> System Status: Pending Manual Approval
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let videoStream = null;
+
+    function goToStep(step) {
+        document.getElementById('progressLine').style.width = ((step - 1) * 50) + '%';
+        for(let i=1; i<=3; i++) {
+            document.getElementById('node' + i).classList.toggle('active', i <= step);
+        }
+        document.querySelectorAll('.step-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('content' + step).classList.add('active');
+        
+        // Auto-start camera if entering step 2
+        if(step === 2) initCamera();
+    }
+
+    async function initCamera() {
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.getElementById('webcamVideo');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            video.srcObject = videoStream;
+            video.style.display = 'block';
+            placeholder.querySelector('i').style.display = 'none';
+        } catch (error) {
+            alert("Camera error: " + error.message);
+        }
+    }
+
+    function handleCapture(type) {
+        const status = document.getElementById('statusText');
+        const laser = document.getElementById('laserLine');
+        
+        status.innerText = `Scanning ${type}...`;
+        status.style.color = "#D90429";
+        laser.style.display = 'block';
+
+        setTimeout(() => {
+            laser.style.display = 'none';
+            status.innerText = `${type} Verified ✅`;
+            status.style.color = "#00ff88";
+        }, 2500);
+    }
+
+
+    async function finalizeSubmission() {
+        const form = document.getElementById('gedaForm');
+        const formData = new FormData(form);
+        
+        // Add the CSRF Token required by Django
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        try {
+            const response = await fetch('/submit-onboarding/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': csrftoken }
+            });
+
+            if (response.ok) {
+                // Now that data is in database, show the Stage 3 (Review Protocol)
+                goToStep(3); 
+            }
+        } catch (error) {
+            alert("System connection error. Please try again.");
+        }
+    }
+</script>
+
+</body>
+</html>

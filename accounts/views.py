@@ -9,8 +9,10 @@ from django.core.files.base import ContentFile
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.http import JsonResponse
+from django.contrib.admin.views.decorators import staff_member_required
 
-from .models import Account, Transaction
+from .models import Account, Transaction, OnboardingApplication
 from .forms import AccountForm, TransferForm
 
 # --- Helper Functions ---
@@ -29,73 +31,110 @@ def signup_view(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             try:
-                # Use a transaction so if Account fails, the User isn't created
                 with transaction.atomic():
                     user = form.save()
-                    # Use get_or_create to prevent the Duplicate Entry error
                     Account.objects.get_or_create(
                         user=user, 
-                        defaults={
-                            'owner': user.username, 
-                            'balance': 0.00,
-                            'kyc_step': 1
-                        }
+                        defaults={'balance': 0.00}
                     )
                 messages.success(request, "Account created successfully! You can now login.")
                 return redirect('login')
             except Exception as e:
-                # If anything goes wrong, the transaction rolls back
                 messages.error(request, f"An error occurred during signup: {e}")
     else:
         form = UserCreationForm()
     return render(request, 'registration/signup.html', {'form': form})
 
-# --- Boss / Admin Views ---
-@user_passes_test(is_admin)
-@login_required
+# --- Boss / Admin Portal ---
+@staff_member_required
 @never_cache
-def account_list(request):
-    accounts = Account.objects.all()
-    pending_count = Account.objects.filter(is_verified=False, kyc_step=3).count()
-    query = request.GET.get('search')
-    if query:
-        accounts = accounts.filter(owner__icontains=query)
+def boss_dashboard(request):
+    """The Modern Bank Admin Portal Command Center with Search & Management"""
     
-    total = accounts.aggregate(Sum('balance'))['balance__sum'] or 0
-    history = Transaction.objects.all().order_by('-timestamp')
+    # 1. Handle Account Search (Search by Account Number or Username)
+    acc_query = request.GET.get('acc_search', '')
+    if acc_query:
+        accounts_list = Account.objects.filter(
+            Q(account_number__icontains=acc_query) | 
+            Q(user__username__icontains=acc_query)
+        ).select_related('user')
+    else:
+        accounts_list = Account.objects.all().order_by('-created_at')[:15]
 
-    return render(request, 'accounts/index.html', {
-        'accounts': accounts,
-        'total_assets': total,
-        'query': query,
+    # 2. Global Bank Statistics
+    total_assets = Account.objects.aggregate(Sum('balance'))['balance__sum'] or 0
+    total_customers = Account.objects.count()
+    
+    # 3. KYC Applications logic
+    pending_apps = OnboardingApplication.objects.filter(status='pending').order_by('-created_at')
+    app_query = request.GET.get('search')
+    if app_query:
+        pending_apps = pending_apps.filter(full_name__icontains=app_query)
+    
+    pending_count = pending_apps.count()
+    recent_transactions = Transaction.objects.all().order_by('-timestamp')[:10]
+
+    return render(request, 'accounts/admin_dashboard.html', {
+        'accounts': accounts_list,
+        'applications': pending_apps,
+        'total_assets': total_assets,
+        'total_customers': total_customers,
         'pending_count': pending_count,
-        'history': history,
+        'history': recent_transactions,
+        'query': app_query,
+        'acc_query': acc_query,
     })
 
-@user_passes_test(is_admin)
-def approve_account(request, account_id):
-    if request.method == "POST":
-        account = get_object_or_404(Account, id=account_id)
-        account.is_verified = True
-        account.save()
-        messages.success(request, f"Account for {account.user.username} activated!")
+@staff_member_required
+def approve_kyc(request, app_id):
+    """Approves a Geda Bank Application and opens an account"""
+    application = get_object_or_404(OnboardingApplication, id=app_id)
+    
+    if application.status == 'pending':
+        try:
+            # Note: In a real system, you'd link this to a NEW user, 
+            # for now, we follow your logic of creating the Account model entry.
+            with transaction.atomic():
+                application.status = 'approved'
+                application.save()
+                
+                Account.objects.create(
+                    user=request.user, # Adjust this to link to the specific customer user in production
+                    account_number=Account.generate_account_number(),
+                    balance=1000.00 
+                )
+            messages.success(request, f"Vault activated for {application.full_name}!")
+        except Exception as e:
+            messages.error(request, f"Approval error: {e}")
+            
     return redirect('boss_portal')
-# --- Updated Customer Dashboard ---
+
+@staff_member_required
+def toggle_freeze(request, pk):
+    """Requirement: Security feature to lock/unlock account activity"""
+    account = get_object_or_404(Account, pk=pk)
+    account.is_frozen = not account.is_frozen
+    account.save()
+    status = "Frozen" if account.is_frozen else "Active"
+    messages.info(request, f"Account {account.account_number} is now {status}.")
+    return redirect('boss_portal')
+
+@staff_member_required
+def delete_account(request, pk):
+    """Close/Delete bank accounts"""
+    account = get_object_or_404(Account, pk=pk)
+    username = account.user.username
+    account.delete()
+    messages.warning(request, f"Account for {username} has been closed and deleted.")
+    return redirect('boss_portal')
+
+# --- Customer Dashboard & Identity ---
 @login_required
 def customer_dashboard(request):
-    # 1. Get or Create account simply
-    account, created = Account.objects.get_or_create(
-        user=request.user, 
-        defaults={'owner': request.user.username, 'kyc_step': 1}
-    )
-
-    # 2. THE ONLY REDIRECT: Only send them away if they are on Step 1 or 2.
-    # If kyc_step is 3, 4, or 5... STAY HERE.
-    if account.kyc_step < 3 and not account.is_verified:
-        return redirect('verify_identity')
-
+    account, created = Account.objects.get_or_create(user=request.user)
+    
     my_history = Transaction.objects.filter(
-        Q(sender=account.owner) | Q(receiver=account.owner)
+        Q(sender=request.user.username) | Q(receiver=request.user.username)
     ).order_by('-timestamp')
 
     return render(request, 'accounts/dashboard.html', {
@@ -103,61 +142,60 @@ def customer_dashboard(request):
         'my_history': my_history
     })
 
-# --- Updated Identity Verification ---
 @login_required
 def identity_verification(request):
-    account = request.user.account
+    """KYC flow for users needing verification"""
+    account, created = Account.objects.get_or_create(user=request.user)
     
-    # THE ONLY REDIRECT: If they are already pending (3) or verified, 
-    # get them OUT of here so they don't loop back.
-    if account.is_verified or account.kyc_step >= 3:
+    if account.is_verified or getattr(account, 'kyc_step', 0) >= 3:
         return redirect('customer_dashboard')
 
     if request.method == 'POST':
-        if account.kyc_step == 1:
+        kyc_step = getattr(account, 'kyc_step', 1)
+        if kyc_step == 1:
             account.phone_number = request.POST.get('phone_number')
-            account.occupation = request.POST.get('occupation')
             account.kyc_step = 2
             account.save()
-            return redirect('verify_identity')
-        
-        elif account.kyc_step == 2:
-            id_data = request.POST.get('id_image')
-            if id_data:
-                format, imgstr = id_data.split(';base64,')
-                ext = format.split('/')[-1]
-                data = ContentFile(base64.b64decode(imgstr), name=f"id_{request.user.id}.{ext}")
-                account.id_card_photo = data
-                account.kyc_step = 3  # Move to pending
-                account.save()
-                return redirect('customer_dashboard')
+        elif kyc_step == 2:
+            account.kyc_step = 3
+            account.save()
+            return redirect('customer_dashboard')
 
     return render(request, 'accounts/verify_identity.html', {'account': account})
+
 # --- Banking Operations ---
+
 @login_required
 def transfer_money(request):
-    account = request.user.account
-    if not account.is_verified:
-        messages.error(request, "Verification required.")
-        return redirect('customer_dashboard')
-    
     if request.method == 'POST':
+        sender_account = request.user.account
+        
+        # NEW SECURITY CHECK
+        if sender_account.is_frozen:
+            messages.error(request, "Transaction Denied: Your account is currently frozen.")
+            return redirect('customer_dashboard')
+
         target_username = request.POST.get('target_user')
         amount = Decimal(request.POST.get('amount', 0))
         try:
             receiver_user = User.objects.get(username=target_username)
             receiver_account = Account.objects.get(user=receiver_user)
-            if account.balance >= amount and amount > 0:
+            
+            if sender_account.balance >= amount and amount > 0:
                 with transaction.atomic():
-                    account.balance -= amount
+                    sender_account.balance -= amount
                     receiver_account.balance += amount
-                    account.save()
+                    sender_account.save()
                     receiver_account.save()
                     new_tx = Transaction.objects.create(
-                        sender=account.owner, receiver=receiver_account.owner,
-                        amount=amount, tx_type='TRF'
+                        sender=request.user.username, 
+                        receiver=target_username,
+                        amount=amount, 
+                        tx_type='TRF'
                     )
                 return redirect('transaction_receipt', ref_id=new_tx.ref_id)
+            else:
+                messages.error(request, "Insufficient funds.")
         except (User.DoesNotExist, Account.DoesNotExist):
             messages.error(request, "Receiver not found.")
     return redirect('customer_dashboard')
@@ -171,7 +209,7 @@ def deposit_money(request):
             account.balance += amount
             account.save()
             new_tx = Transaction.objects.create(
-                sender="External", receiver=account.owner, amount=amount, tx_type='DEP'
+                sender="External", receiver=request.user.username, amount=amount, tx_type='DEP'
             )
         return redirect('transaction_receipt', ref_id=new_tx.ref_id)
     return redirect('customer_dashboard')
@@ -179,16 +217,24 @@ def deposit_money(request):
 @login_required
 def withdraw_money(request):
     if request.method == 'POST':
-        amount = Decimal(request.POST.get('amount', 0))
         account = request.user.account
+        
+        # NEW SECURITY CHECK
+        if account.is_frozen:
+            messages.error(request, "Withdrawal Denied: Account is frozen.")
+            return redirect('customer_dashboard')
+
+        amount = Decimal(request.POST.get('amount', 0))
         if account.balance >= amount:
             with transaction.atomic():
                 account.balance -= amount
                 account.save()
                 new_tx = Transaction.objects.create(
-                    sender=account.owner, receiver="Cash", amount=amount, tx_type='WDL'
+                    sender=request.user.username, receiver="Cash", amount=amount, tx_type='WDL'
                 )
             return redirect('transaction_receipt', ref_id=new_tx.ref_id)
+        else:
+            messages.error(request, "Insufficient funds.")
     return redirect('customer_dashboard')
 
 @login_required
@@ -196,8 +242,24 @@ def transaction_receipt(request, ref_id):
     tx = get_object_or_404(Transaction, ref_id=ref_id)
     return render(request, 'receipt.html', {'tx': tx})
 
-@user_passes_test(is_admin)
-def delete_account(request, pk):
-    account = get_object_or_404(Account, pk=pk)
-    account.delete()
-    return redirect('boss_portal')
+# --- Onboarding Entry Point ---
+def onboarding(request):
+    if request.user.is_authenticated:
+        return redirect('customer_dashboard')
+    return render(request,'accounts/onboarding.html')
+
+def submit_onboarding(request):
+    if request.method == "POST":
+        OnboardingApplication.objects.create(
+            full_name=request.POST.get('fullname'),
+            country=request.POST.get('country'),
+            kebele=request.POST.get('kebele'),
+            national_id=request.POST.get('national_id'),
+            job_position=request.POST.get('job'),
+            age=request.POST.get('age'),
+            phone=request.POST.get('phone'),
+            is_id_captured=True,
+            is_face_captured=True
+        )
+        return JsonResponse({"status": "success"})
+    return JsonResponse({"status": "error"}, status=400)
